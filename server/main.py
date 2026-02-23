@@ -10,6 +10,7 @@ config = {}
 try:
     with open("./config.json", 'r') as file:
         config = json.loads(file.read())
+    assert("auth_key" in config)
 except:
     print("Could not read config file! - Generating new one")
     config["auth_key"] = str(uuid.uuid4())
