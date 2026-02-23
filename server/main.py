@@ -53,7 +53,7 @@ def index():
 
 @app.route("/<image_filename>", methods=["GET", "DELETE"])
 def image_handler(image_filename):
-    for forbidden in ["\\", "'", '"', '.', '/']:
+    for forbidden in ["\\", "'", '"', '/', '..']:
         if (forbidden in image_filename):
             return "", 400
     
