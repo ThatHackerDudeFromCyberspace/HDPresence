@@ -24,6 +24,7 @@ def hashImage(image: Image.Image):
     return m.hexdigest()
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
 os.makedirs("cache/images", exist_ok=True)
 
@@ -52,20 +53,22 @@ def index():
 
 @app.route("/<image_filename>", methods=["GET", "DELETE"])
 def image_handler(image_filename):
-    if (request.headers.get("authorization", "").split(" ")[-1] != config["auth_key"]):
-        return "UNAUTHORIZED", 403
-    
     for forbidden in ["\\", "'", '"', '.', '/']:
         if (forbidden in image_filename):
-            return "INVALID REQUEST", 400
+            return "", 400
     
     image_path = os.path.join("./cache/images/", image_filename)
     if (not os.path.exists(image_path)):
-        return "NOT FOUND", 404
+        return "", 404
 
     if (request.method == "DELETE"):
-        os.remove(image_path)
-        return {}, 200
+        if (request.headers.get("authorization", "").split(" ")[-1] != config["auth_key"]):
+            return "UNAUTHORIZED", 403
+        try:
+            os.remove(image_path)
+            return "", 200
+        except:
+            return "", 500
     return send_file(image_path, "image/png", False)
 
 if (__name__ == "__main__"):
