@@ -56,7 +56,7 @@ while True:
             print(f"New hash: {activity_response.get_hash()}")
 
         print("Sending new activity!")
-        print(json.dumps(activity_response.get_activity(), cls=DiscordJSONEncoder))
+        #print(json.dumps(activity_response.get_activity(), cls=DiscordJSONEncoder))
         discord.send(1, {
             "cmd": "SET_ACTIVITY",
             "args": {
@@ -66,7 +66,7 @@ while True:
             "nonce": str(uuid.uuid4())
         })
         response = discord.wait_valid_response()
-        print(response)
+        #print(response)
         last_activity_hash = activity_response.get_hash()
         last_activity_ping = time.time()
         if (response["evt"] != "ERROR"):
