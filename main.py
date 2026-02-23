@@ -70,9 +70,9 @@ while True:
             if (activity.assets == None):
                 activity.assets = DiscordActivityAssets()
 
-            image_to_use = handler_activity.assets.small_image
-            if (handler_activity.assets.large_image != None):
-                image_to_use = handler_activity.assets.large_image
+            image_to_use = handler_activity.assets.large_image
+            if (handler_activity.assets.small_image != None):
+                image_to_use = handler_activity.assets.small_image
 
             if (activity.assets.large_image != None):
                 activity.assets.small_image = image_to_use
