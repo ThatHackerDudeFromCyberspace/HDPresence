@@ -285,7 +285,7 @@ class DiscordIPC():
             "client_id": self.client_id
         })
 
-        print("Awaiting response")
+        print("Waiting for Discord to respond")
         self.wait_valid_response()
 
 runtime_dir = os.environ["XDG_RUNTIME_DIR"]

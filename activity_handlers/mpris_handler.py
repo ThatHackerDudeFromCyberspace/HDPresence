@@ -1,10 +1,7 @@
 import math
-import os
 import time
 import urllib
-import psutil
 import requests
-import json
 import dbus
 
 from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
@@ -58,8 +55,28 @@ class Player():
     def get_length(self):
         return self.length
 
-    def get_hash(self):
+    def get_activity_hash(self):
         return f"{str(self.get_status())}:{str(self.get_name())}:{self.get_title()}:{math.trunc(self.get_start()/10000)}:{self.get_length()}"
+    
+    def get_track_hash(self):
+        return f"{str(self.get_name())}:{str(self.get_title())}:{str(self.get_artist())}"
+    
+    def upload_cover(self, upload_endpoint, auth_key):
+        if (self.cover_art_url == None):
+            return None
+        
+        cover_art_url = str(self.cover_art_url)
+        if (cover_art_url[:len("file://")] != "file://"):
+            return cover_art_url
+        
+        cover_art_path = cover_art_url[len("file://"):]
+        try:
+            response = requests.post(f"{upload_endpoint}", files={"file": open(cover_art_path, 'rb')}, headers={"authorization": f"Bearer {auth_key}"})
+            if (response.status_code != 200):
+                return None
+            return upload_endpoint + '/' + response.json()["path"]
+        except Exception as e:
+            return None
 
     
 
@@ -67,14 +84,15 @@ class MPRISHandler(ActivityHandler):
     SERVICE_PREFIX = "org.mpris.MediaPlayer2"
 
     def __init__(self, context: HandlerContext):
-        self.session_bus = context.session_bus
+        self.context = context
 
     def get_activity(self) -> DiscordActivity:
+        session_bus = self.context.session_bus
         players: list[Player] = []
-        for bus_name in self.session_bus.list_names():
+        for bus_name in session_bus.list_names():
             bus_name = str(bus_name)
             if (bus_name[:len(self.SERVICE_PREFIX)] == self.SERVICE_PREFIX):
-                media_object = self.session_bus.get_object(bus_name, "/org/mpris/MediaPlayer2")
+                media_object = session_bus.get_object(bus_name, "/org/mpris/MediaPlayer2")
                 mediaplayer_properties = dbus.Interface(media_object, dbus_interface="org.freedesktop.DBus.Properties")
                 player_name = mediaplayer_properties.Get("org.mpris.MediaPlayer2", "Identity")
                 metadata = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "Metadata")
@@ -117,19 +135,25 @@ class MPRISHandler(ActivityHandler):
             if (len(players) > 1):
                 return HandlerResponse()
 
+        cover_url = selected_player.upload_cover(self.context.config["server_url"], self.context.config["server_auth_key"])
+        activity = DiscordActivity(
+            str(selected_player.get_name()),
+            type = ACTIVITY_TYPE.LISTENING,
+            details=selected_player.get_title(),
+            details_url=f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(selected_player.get_artist()) + ' "' + str(selected_player.get_title()) + '"')}",
+            state=f"{selected_player.get_artist()} | {str(selected_player.get_status())}",
+            timestamps=DiscordActivityTimestamps(
+                start=selected_player.get_start(),
+                end=selected_player.get_end()
+            )
+        )
+        if (cover_url != None):
+            activity.assets = DiscordActivityAssets(
+                DiscordActivityImage(cover_url)
+            )
         return HandlerResponse(
-            DiscordActivity(
-                str(selected_player.get_name()),
-                type = ACTIVITY_TYPE.LISTENING,
-                details=selected_player.get_title(),
-                details_url=f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(selected_player.get_artist()) + ' "' + str(selected_player.get_title()) + '"')}",
-                state=f"{selected_player.get_artist()} | {str(selected_player.get_status())}",
-                timestamps=DiscordActivityTimestamps(
-                    start=selected_player.get_start(),
-                    end=selected_player.get_end()
-                )
-            ),
-            hash=selected_player.get_hash()
+            activity,
+            hash=selected_player.get_activity_hash()
         )
 
 
