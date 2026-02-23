@@ -35,13 +35,13 @@ class Player():
         if (self.status != "Playing" or self.position >= self.length):
             return 1
         else:
-            return time.time()*1000 - self.position
+            return round(time.time()*1000 - self.position, 2)
     
     def get_end(self):
         if (self.status != "Playing" or self.position >= self.length):
-            return self.length/1000 + 1
+            return round(self.length/1000 + 1, 2)
         else:
-            start = time.time()*1000 - self.position
+            start = round(time.time()*1000 - self.position, 2)
             return start + self.length
         
     def get_status(self):

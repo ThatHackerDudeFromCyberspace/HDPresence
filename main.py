@@ -1,6 +1,6 @@
 import json
 from activity_handler import HandlerContext, ActivityHandler
-from discord_ipc import DiscordIPC
+from discord_ipc import DiscordIPC, DiscordJSONEncoder
 import importlib
 import uuid
 import time
@@ -56,6 +56,7 @@ while True:
             print(f"New hash: {activity_response.get_hash()}")
 
         print("Sending new activity!")
+        print(json.dumps(activity_response.get_activity(), cls=DiscordJSONEncoder))
         discord.send(1, {
             "cmd": "SET_ACTIVITY",
             "args": {

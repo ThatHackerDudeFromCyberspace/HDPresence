@@ -6,7 +6,7 @@
     "client_id": "Discord Application Client ID",
     "steam_api_key": "Optional Steam API Key (https://steamcommunity.com/dev/apikey)",
     "activity_refresh_time": 600,
-    "activity_cooldown_time": 5,
+    "activity_cooldown_time": 10,
     "server_url": "https://example.com",
     "server_auth_key": "[auth key here]"
 }
