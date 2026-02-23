@@ -50,16 +50,18 @@ class DiscordJSONEncoder(json.JSONEncoder):
             return obj.to_json_object()
         return super().default(obj)
 
-class DiscordTimestamps(DiscordJSONObject):
-    def __init__(self, start: int, end: int):
+class DiscordActivityTimestamps(DiscordJSONObject):
+    def __init__(self, start: int = None, end: int = None):
         self.start: int = start
         self.end: int = end
         
     def to_json_object(self):
-        return {
-            "start": self.start,
-            "end": self.end
-        }
+        data = {}
+        if (self.start != None):
+            data["start"] = self.start
+        if (self.end != None):
+            data["end"] = self.end
+        return data
     
 class DiscordEmoji(DiscordJSONObject):
     def __init__(self, name: str, id: str = None, animated: bool = None):
@@ -109,16 +111,16 @@ class DiscordActivityAssets(DiscordJSONObject):
             if (self.large_image.image != None):
                 data["large_image"] = self.large_image.image
             if (self.large_image.text != None):
-                data["large_image_text"] = self.large_image.text
+                data["large_text"] = self.large_image.text
             if (self.large_image.url != None):
-                data["large_image_url"] = self.large_image.url
+                data["large_url"] = self.large_image.url
         if (self.small_image != None):
             if (self.small_image.image != None):
                 data["small_image"] = self.small_image.image
             if (self.small_image.text != None):
-                data["small_image_text"] = self.small_image.text
+                data["small_text"] = self.small_image.text
             if (self.small_image.url != None):
-                data["small_image_url"] = self.small_image.url
+                data["small_url"] = self.small_image.url
         if (self.invite_cover_image != None):
             data["invite_cover_image"] = self.invite_cover_image
         return data
@@ -153,8 +155,7 @@ class DiscordActivity(DiscordJSONObject):
     def __init__(self,
                  name: str,
                  type: int = ACTIVITY_TYPE.PLAYING,
-                 created_at: int = None,
-                 timestamps: DiscordTimestamps = None,
+                 timestamps: DiscordActivityTimestamps = None,
                  application_id: str = None, # @TODO: Are snowflakes a string?
                  status_display_type: STATUS_DISPLAY_TYPE = STATUS_DISPLAY_TYPE.NAME,
                  details: str = None,
@@ -171,7 +172,6 @@ class DiscordActivity(DiscordJSONObject):
                 ):
         self.name = name
         self.type = type
-        self.created_at = created_at
         self.timestamps = timestamps
         self.application_id = application_id
         self.status_display_type = status_display_type
@@ -192,8 +192,6 @@ class DiscordActivity(DiscordJSONObject):
             "name": self.name,
             "type": self.type,
         }
-        if (self.created_at != None):
-            data["created_at"] = self.created_at
 
         if (self.timestamps != None):
             data["timestamps"] = self.timestamps.to_json_object()
@@ -275,10 +273,10 @@ class DiscordIPC():
             received = self.discord_socket.recv(1)
             buffer += received
             try:
-                fixed_buffer = buffer[buffer.index(b'{'):]
+                fixed_buffer = buffer[buffer.index(b'{'):].split(b'\x00')[-1]
                 data = json.loads(fixed_buffer)
                 return data
-            except:
+            except Exception as e:
                 pass
 
     def _handshake(self):
