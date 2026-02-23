@@ -4,13 +4,13 @@ import psutil
 import requests
 import json
 
-from activity_handler import ActivityContext, ActivityHandler
+from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
 from discord_ipc import ACTIVITY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
 
 class SteamHandler(ActivityHandler):
     cache_path = "./cache/steam_handler/cache.json"
     
-    def __init__(self, context: ActivityContext):
+    def __init__(self, context: HandlerContext):
         os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
         self.api_key: str = context.config["steam_api_key"]
         self.cache = {}
@@ -74,7 +74,8 @@ class SteamHandler(ActivityHandler):
             icon_url = f"https://shared.fastly.steamstatic.com/community_assets/images/apps/{appid}/{app_info['icon']}.jpg"
             large_image_url = f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg" #f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
             store_url = f"https://store.steampowered.com/app/{appid}"
-            return DiscordActivity(
+            return HandlerResponse(
+                DiscordActivity(
                     app_info["name"],
                     type = ACTIVITY_TYPE.PLAYING,
                     timestamps=DiscordActivityTimestamps(
@@ -95,5 +96,7 @@ class SteamHandler(ActivityHandler):
                         DiscordActivityButton("View On Steam", store_url)
                     ]
                 )
+            )
+        return HandlerResponse()
 
 ACTIVITY_HANDLER = SteamHandler

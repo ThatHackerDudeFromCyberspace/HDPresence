@@ -1,17 +1,19 @@
+import math
 import os
 import time
+import urllib
 import psutil
 import requests
 import json
 import dbus
 
-from activity_handler import ActivityContext, ActivityHandler
+from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
 from discord_ipc import ACTIVITY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
 
 class MPRISHandler(ActivityHandler):
     SERVICE_PREFIX = "org.mpris.MediaPlayer2"
 
-    def __init__(self, context: ActivityContext):
+    def __init__(self, context: HandlerContext):
         self.session_bus = context.session_bus
 
     def get_activity(self) -> DiscordActivity:
@@ -26,6 +28,8 @@ class MPRISHandler(ActivityHandler):
                     continue
                 name = player_name
                 title = metadata.get("xesam:title", None)
+                if (title != None):
+                    title = str(title)
                 artists = metadata.get("xesam:artist", [])
                 artist = None
                 if (len(artists) > 0):
@@ -35,23 +39,28 @@ class MPRISHandler(ActivityHandler):
                 position = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "Position") / 1000
                 status = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
 
-                if (str(status) != "Playing"):
+                if (str(status) != "Playing" or position >= length):
                     start = 1
                     end = length/1000 + 1
                 else:
-                    start = (time.time()*1000 - position) // 1000 * 1000
-                    end = (start + length) // 1000 * 1000
+                    start = time.time()*1000 - position
+                    end = start + length
 
-                return DiscordActivity(
-                    str(name),
-                    type = ACTIVITY_TYPE.LISTENING,
-                    details=title,
-                    state=f"{artist} | {str(status)}",
-                    timestamps=DiscordActivityTimestamps(
-                        start=start,
-                        end=end
-                    )
+                return HandlerResponse(
+                    DiscordActivity(
+                        str(name),
+                        type = ACTIVITY_TYPE.LISTENING,
+                        details=title,
+                        details_url=f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(artist) + ' "' + str(title) + '"')}",
+                        state=f"{artist} | {str(status)}",
+                        timestamps=DiscordActivityTimestamps(
+                            start=start,
+                            end=end
+                        )
+                    ),
+                    hash=f"{str(status)}:{str(name)}:{title}:{math.trunc(start/10000)}:{length}"
                 )
+        return HandlerResponse()
 
 
 

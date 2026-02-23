@@ -1,6 +1,6 @@
 import json
-from activity_handler import ActivityContext, ActivityHandler
-from discord_ipc import DiscordIPC, DiscordJSONEncoder
+from activity_handler import HandlerContext, ActivityHandler
+from discord_ipc import DiscordIPC
 import importlib
 import uuid
 import time
@@ -18,7 +18,7 @@ discord = DiscordIPC(config["client_id"])
 print("Connecting to dbus...")
 session_bus = dbus.SessionBus()
 
-activity_context = ActivityContext(config, session_bus)
+handler_context = HandlerContext(config, session_bus)
 
 print("Loading activity handlers...")
 handlers: list[ActivityHandler] = []
@@ -33,33 +33,40 @@ for file in os.listdir("activity_handlers"):
     if (handler == None):
         print(f"ERROR: Could not load handler {handler_name} - Missing ACTIVITY_HANDLER")
         continue
-    handlers.append(handler(activity_context))
+    handlers.append(handler(handler_context))
 
 print("\nDone.\n")
-last_activity = None
+last_activity_hash = None
 last_activity_ping = 0
 while True:
     should_send_activity = time.time() - last_activity_ping > config["activity_refresh_time"]
+    if (time.time() - last_activity_ping < config["activity_cooldown_time"]):
+        time.sleep(config["activity_cooldown_time"] - (time.time() - last_activity_ping)) # Cooldown or Discord won't respect our updates at all!
+        continue
+
     sent_activity = False
     for handler in handlers:
-        activity = handler.get_activity()
-        if (activity == None):
+        activity_response = handler.get_activity()
+        if (activity_response.get_activity() == None):
             continue
-        if (not should_send_activity and json.dumps(activity, cls=DiscordJSONEncoder) == last_activity):
+        if (not should_send_activity and activity_response.get_hash() == last_activity_hash):
             sent_activity = True # don't spam discord
             break
-        
+        else:
+            print(f"New hash: {activity_response.get_hash()}")
+
         print("Sending new activity!")
         discord.send(1, {
             "cmd": "SET_ACTIVITY",
             "args": {
                 "pid": PID,
-                "activity": activity
+                "activity": activity_response.get_activity()
             },
             "nonce": str(uuid.uuid4())
         })
         response = discord.wait_valid_response()
-        last_activity = json.dumps(activity, cls=DiscordJSONEncoder)
+        print(response)
+        last_activity_hash = activity_response.get_hash()
         last_activity_ping = time.time()
         if (response["evt"] != "ERROR"):
             sent_activity = True
@@ -67,7 +74,7 @@ while True:
         else:
             print(f"ERROR: {response}")
 
-    if (not sent_activity and (last_activity != None or should_send_activity)):
+    if (not sent_activity and (last_activity_hash != None or should_send_activity)):
         print("Clearing last activity!")
         discord.send(1, {
             "cmd": "SET_ACTIVITY",
@@ -78,5 +85,5 @@ while True:
             "nonce": str(uuid.uuid4())
         })
         response = discord.wait_valid_response()
-        last_activity = None
+        last_activity_hash = None
         last_activity_ping = time.time()
