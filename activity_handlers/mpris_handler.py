@@ -1,11 +1,12 @@
 import math
 import time
 import urllib
+import urllib.parse
 import requests
 import dbus
 
 from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
-from discord_ipc import ACTIVITY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
+from discord_ipc import ACTIVITY_TYPE, STATUS_DISPLAY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
 
 class Player():
     def __init__(self,
@@ -56,10 +57,8 @@ class Player():
         return self.length
 
     def get_activity_hash(self):
-        return f"{str(self.get_status())}:{str(self.get_name())}:{self.get_title()}:{math.trunc(self.get_start()/10000)}:{self.get_length()}"
-    
-    def get_track_hash(self):
-        return f"{str(self.get_name())}:{str(self.get_title())}:{str(self.get_artist())}"
+        # Used to return the activity-specific hash - we divide start by 10000 to avoid weird jitter that happens sometimes when unpausing
+        return f"{str(self.get_status())}:{str(self.get_name())}:{self.get_title()}:{math.trunc(self.get_start()/10000)}:{self.get_length()}:{str(self.cover_art_url)}"
     
     def upload_cover(self, upload_endpoint, auth_key):
         if (self.cover_art_url == None):
@@ -69,7 +68,7 @@ class Player():
         if (cover_art_url[:len("file://")] != "file://"):
             return cover_art_url
         
-        cover_art_path = cover_art_url[len("file://"):]
+        cover_art_path = urllib.parse.unquote_plus(cover_art_url[len("file://"):])
         try:
             response = requests.post(f"{upload_endpoint}", files={"file": open(cover_art_path, 'rb')}, headers={"authorization": f"Bearer {auth_key}"})
             if (response.status_code != 200):
@@ -91,7 +90,7 @@ class MPRISHandler(ActivityHandler):
         players: list[Player] = []
         for bus_name in session_bus.list_names():
             bus_name = str(bus_name)
-            if (bus_name[:len(self.SERVICE_PREFIX)] == self.SERVICE_PREFIX):
+            if (bus_name[:len(self.SERVICE_PREFIX)] == self.SERVICE_PREFIX): # See: https://specifications.freedesktop.org/mpris/latest/
                 media_object = session_bus.get_object(bus_name, "/org/mpris/MediaPlayer2")
                 mediaplayer_properties = dbus.Interface(media_object, dbus_interface="org.freedesktop.DBus.Properties")
                 player_name = mediaplayer_properties.Get("org.mpris.MediaPlayer2", "Identity")
@@ -104,10 +103,11 @@ class MPRISHandler(ActivityHandler):
                     title = str(title)
                 artists = metadata.get("xesam:artist", [])
                 cover_art_url = metadata.get("mpris:artUrl", None)
-                length = metadata.get("mpris:length", 1000000) / 1000
+                length = metadata.get("mpris:length", 1000000) / 1000 # Measured in microseconds but we want millis
                 position = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "Position") / 1000
                 status = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
 
+                # We store a list of players so we can select the best one!
                 players.append(
                     Player(
                         name,
@@ -145,7 +145,8 @@ class MPRISHandler(ActivityHandler):
             timestamps=DiscordActivityTimestamps(
                 start=selected_player.get_start(),
                 end=selected_player.get_end()
-            )
+            ),
+            status_display_type=STATUS_DISPLAY_TYPE.DETAILS
         )
         if (cover_url != None):
             activity.assets = DiscordActivityAssets(
