@@ -15,7 +15,7 @@ class HandlerResponse():
         else:
             self.hash = hash
 
-    def get_hash(self) -> object:
+    def get_hash(self) -> str:
         return self.hash
     
     def get_activity(self) -> DiscordActivity|None:
@@ -25,5 +25,5 @@ class ActivityHandler():
     def __init__(self, context: HandlerContext):
         pass
 
-    def get_activity(self) -> HandlerResponse:
+    def get_response(self) -> HandlerResponse:
         pass

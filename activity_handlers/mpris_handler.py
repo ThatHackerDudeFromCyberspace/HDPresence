@@ -56,7 +56,7 @@ class Player():
     def get_length(self):
         return self.length
 
-    def get_activity_hash(self):
+    def get_response_hash(self):
         # Used to return the activity-specific hash - we divide start by 10000 to avoid weird jitter that happens sometimes when unpausing
         return f"{str(self.get_status())}:{str(self.get_name())}:{self.get_title()}:{math.trunc(self.get_start()/10000)}:{self.get_length()}:{str(self.cover_art_url)}"
     
@@ -85,7 +85,7 @@ class MPRISHandler(ActivityHandler):
     def __init__(self, context: HandlerContext):
         self.context = context
 
-    def get_activity(self) -> DiscordActivity:
+    def get_response(self) -> HandlerResponse:
         session_bus = self.context.session_bus
         players: list[Player] = []
         for bus_name in session_bus.list_names():
@@ -154,7 +154,7 @@ class MPRISHandler(ActivityHandler):
             )
         return HandlerResponse(
             activity,
-            hash=selected_player.get_activity_hash()
+            hash=selected_player.get_response_hash()
         )
 
 

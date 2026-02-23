@@ -23,6 +23,18 @@ class ACTIVITY_TYPE():
     CUSTOM = 4 # Invalid for this!
     COMPETING = 5
 
+    def to_string(activity_type: ACTIVITY_TYPE):
+        if (activity_type == ACTIVITY_TYPE.PLAYING):
+            return "playing"
+        if (activity_type == ACTIVITY_TYPE.STREAMING):
+            return "streaming"
+        if (activity_type == ACTIVITY_TYPE.LISTENING):
+            return "listening to"
+        if (activity_type == ACTIVITY_TYPE.WATCHING):
+            return "watching"
+        if (activity_type == ACTIVITY_TYPE.COMPETING):
+            return "competing in"
+
 class ACTIVITY_FLAGS():
     INSTANCE	= 1 << 0
     JOIN	= 1 << 1
@@ -186,6 +198,8 @@ class DiscordActivity(DiscordJSONObject):
         self.instance = instance
         self.flags = flags
         self.buttons = buttons
+        if (self.buttons == None):
+            self.buttons = []
 
     def to_json_object(self):
         data = {
@@ -232,7 +246,7 @@ class DiscordActivity(DiscordJSONObject):
         if (self.flags != None):
             data["flags"] = self.flags
 
-        if (self.buttons != None):
+        if (len(self.buttons) > 0):
             data["buttons"] = []
             for button in self.buttons:
                 data["buttons"].append(button.to_json_object())

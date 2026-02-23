@@ -50,7 +50,7 @@ class SteamHandler(ActivityHandler):
 
         return obtained
 
-    def get_activity(self) -> DiscordActivity:
+    def get_response(self) -> HandlerResponse:
         running_games = []
         for proc in psutil.process_iter(['name', 'cmdline', 'create_time']):
             if (proc.info["name"] == "reaper"):
@@ -60,7 +60,8 @@ class SteamHandler(ActivityHandler):
                     if ("AppId" in arg):
                         running_games.append((
                             arg.split('=')[-1],
-                            proc.info["create_time"]
+                            proc.info["create_time"],
+                            proc.info["cmdline"]
                         ))
         running_games.sort(key=lambda game: game[1]) # Sort by creation time
         running_games = running_games[-1::-1] # Flip
@@ -71,32 +72,41 @@ class SteamHandler(ActivityHandler):
             appid = game[0]
             create_time = game[1]
             app_info = app_infos[appid]
-            icon_url = f"https://shared.fastly.steamstatic.com/community_assets/images/apps/{appid}/{app_info['icon']}.jpg"
-            large_image_url = f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg" #f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
-            store_url = f"https://store.steampowered.com/app/{appid}"
-            return HandlerResponse(
-                DiscordActivity(
-                    app_info["name"],
-                    type = ACTIVITY_TYPE.PLAYING,
-                    timestamps=DiscordActivityTimestamps(
-                        start=create_time*1000
-                    ),
-                    assets=DiscordActivityAssets(
-                        large_image = DiscordActivityImage(
-                            image=large_image_url,
-                            text=app_info["name"],
-                            url=store_url
-                        ),
-                        small_image = DiscordActivityImage(
-                            image=icon_url,
-                            url=store_url
-                        )
-                    ),
-                    buttons=[
-                        DiscordActivityButton("View On Steam", store_url)
-                    ]
+
+            icon_url = None
+            large_image_url = None
+            store_url = None
+            if ("icon" in app_info.keys() and "name" in app_info.keys()):
+                icon_url = f"https://shared.fastly.steamstatic.com/community_assets/images/apps/{appid}/{app_info['icon']}.jpg"
+                large_image_url = f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg" #f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
+                store_url = f"https://store.steampowered.com/app/{appid}"
+            else:
+                app_info["name"] = os.path.basename(game[2][-1]).strip()
+                if (app_info["name"][-4:] == ".exe"):
+                    app_info["name"] = app_info["name"][:-4]
+
+            activity = DiscordActivity(
+                app_info["name"],
+                type = ACTIVITY_TYPE.PLAYING,
+                timestamps=DiscordActivityTimestamps(
+                    start=create_time*1000
                 )
             )
+            if (icon_url != None):
+                activity.assets=DiscordActivityAssets(
+                    large_image = DiscordActivityImage(
+                        image=large_image_url,
+                        text=app_info["name"],
+                        url=store_url
+                    ),
+                    small_image = DiscordActivityImage(
+                        image=icon_url,
+                        url=store_url
+                    )
+                )
+            if (store_url != None):
+                activity.buttons.append(DiscordActivityButton("View On Steam", store_url))
+            return HandlerResponse(activity)
         return HandlerResponse()
 
 ACTIVITY_HANDLER = SteamHandler
