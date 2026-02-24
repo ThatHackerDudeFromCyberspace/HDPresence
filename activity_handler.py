@@ -1,5 +1,5 @@
 import dbus
-from discord_ipc import DiscordActivity, DiscordJSONEncoder
+from discord_ipc import ACTIVITY_TYPE, DiscordActivity, DiscordJSONEncoder
 import json
 
 class HandlerContext():
@@ -8,12 +8,20 @@ class HandlerContext():
         self.session_bus = session_bus
 
 class HandlerResponse():
-    def __init__(self, activity: DiscordActivity|None = None, hash: object = None):
+    def __init__(self, activity: DiscordActivity|None = None, hash: str = None, prefix: str = None):
         self.activity = activity
         if (hash == None):
-            self.hash = json.dumps(self.activity, cls=DiscordJSONEncoder)
+            self.hash: str = json.dumps(self.activity, cls=DiscordJSONEncoder)
         else:
-            self.hash = hash
+            self.hash: str = hash
+        self.prefix: str|None = prefix
+
+    def get_prefix(self) -> str:
+        if (self.prefix != None):
+            return self.prefix
+        if (self.activity != None):
+            return ACTIVITY_TYPE.to_string(self.activity.type)
+        return "using"
 
     def get_hash(self) -> str:
         return self.hash

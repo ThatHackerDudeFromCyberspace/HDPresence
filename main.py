@@ -43,7 +43,7 @@ last_activity_hash = None
 last_activity_ping = 0
 while True:
     should_update_activity = time.time() - last_activity_ping > config["activity_refresh_time"]
-    if (time.time() - last_activity_ping < config["activity_cooldown_time"]):
+    if (last_activity_hash != None and time.time() - last_activity_ping < config["activity_cooldown_time"]):
         time.sleep(config["activity_cooldown_time"] - (time.time() - last_activity_ping)) # Cooldown or Discord won't respect our updates at all!
         continue
 
@@ -63,7 +63,7 @@ while True:
             activity = handler_activity
             continue
 
-        activity.name += f" whilst {ACTIVITY_TYPE.to_string(handler_activity.type)} " + handler_activity.name
+        activity.name += f" whilst {handler_response.get_prefix()} " + handler_activity.name
         activity.buttons.extend(handler_activity.buttons)
         activity.buttons = activity.buttons[:2] # Max of two items!!!
         if (handler_activity.assets != None):
@@ -73,6 +73,9 @@ while True:
             image_to_use = handler_activity.assets.large_image
             if (handler_activity.assets.small_image != None):
                 image_to_use = handler_activity.assets.small_image
+
+            if (image_to_use.text == None):
+                image_to_use.text = handler_activity.name
 
             if (activity.assets.large_image != None):
                 activity.assets.small_image = image_to_use
