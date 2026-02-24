@@ -75,7 +75,7 @@ while True:
             future_activity_count = 0
             for future_handler_name in config["general"]["enabled_handlers"][i+1:]:
                 future_activity_count += len(handler_responses[future_handler_name])
-            if (activity_count + len(responses_to_parse) + future_activity_count > config["general"]["max_activities"]):
+            if (i == len(config["general"]["enabled_handlers"]) and activity_count + len(responses_to_parse) + future_activity_count > config["general"]["max_activities"]):
                 should_add_multiple_responses = False # Essentially, we only do multiple responses from the SAME activity if it would not affect any subsequent activities
 
         
@@ -119,6 +119,10 @@ while True:
 
                 if (image_to_use.text == None):
                     image_to_use.text = response_activity.name
+                    if (response_activity.state):
+                        image_to_use.text += f" | {response_activity.state}"
+                    elif (response_activity.details):
+                        image_to_use.text += f" | {response_activity.details}"
 
                 if (activity.assets.large_image == None):
                     activity.assets.large_image = image_to_use
