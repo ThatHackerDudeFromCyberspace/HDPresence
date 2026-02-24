@@ -71,7 +71,7 @@ whitelist = []
 blacklist = []
 
 # Mapping for process-specific prefixes based on their name/command
-prefixes = [
+prefix_overrides = [
     ["code", "programming with"],
     ["chrome", "browsing the web"]
 ]
@@ -80,6 +80,11 @@ prefixes = [
 name_overrides = [
     ["code", "VSCode"],
     ["chrome", ""] # "browsing the web"
+]
+
+# Mapping to override icons with a certain path
+icon_overrides = [
+#    ["code", "/usr/share/icons/visual-studio-code.png"]
 ]
 
 [process_handler.activity_format]

@@ -61,6 +61,7 @@ while True:
     matching_type_activity_names = []
     grouped_activity_prefix_names: dict[str, str] = {}
     activity_count: int = 0
+    small_image_already_overridden = False # True once the small image has been overridden in multiactivity
     for i in range(len(config["general"]["enabled_handlers"])):
         if (activity_count == config["general"]["max_activities"]):
             break
@@ -124,18 +125,21 @@ while True:
                     elif (response_activity.details):
                         image_to_use.text += f" | {response_activity.details}"
 
-                if (activity.assets.large_image == None):
-                    activity.assets.large_image = image_to_use
-                else:
-                    activity.assets.small_image = image_to_use
+                if (image_to_use != None):
+                    if (activity.assets.large_image == None):
+                        activity.assets.large_image = image_to_use
+                    elif (not small_image_already_overridden):
+                        activity.assets.small_image = image_to_use
+                        small_image_already_overridden = True
             if (activity_count == config["general"]["max_activities"]):
                 break
 
     # Construct final activity name
-    activity.name = ""
-    activity.name = " and ".join(matching_type_activity_names)
-    for activity_prefix in grouped_activity_prefix_names:
-        activity.name += f" whilst {activity_prefix} {' and '.join(grouped_activity_prefix_names[activity_prefix])}"
+    if (activity != None):
+        activity.name = ""
+        activity.name = " and ".join(matching_type_activity_names)
+        for activity_prefix in grouped_activity_prefix_names:
+            activity.name += f" whilst {activity_prefix} {' and '.join(grouped_activity_prefix_names[activity_prefix])}"
 
     if (activity != None and (should_update_activity or cumulative_hash != last_activity_hash)):
         print("Sending new activity!")

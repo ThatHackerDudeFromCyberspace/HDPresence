@@ -132,7 +132,7 @@ class MPRISHandler(ActivityHandler):
                 )
 
         if (len(players) == 0):
-            return HandlerResponse()
+            return []
 
         selected_player_index = 0
         for i in range(len(players)):
@@ -145,7 +145,9 @@ class MPRISHandler(ActivityHandler):
 
         responses = []
         for player in players:
-            cover_url = player.upload_cover(self.context.config["general"]["server_url"], self.context.config["general"]["server_auth_key"])
+            cover_url = None
+            if (self.context.config["mpris_handler"]["upload_cover"]):
+                cover_url = player.upload_cover(self.context.config["general"]["server_url"], self.context.config["general"]["server_auth_key"])
             activity = build_activity_from_format(
                 ACTIVITY_TYPE.LISTENING,
                 self.context.config["mpris_handler"]["activity_format"],

@@ -97,6 +97,7 @@ class SteamHandler(ActivityHandler):
                     "store_url": store_url
                 }
             )
+            activity.timestamps = DiscordActivityTimestamps(start=create_time*1000*1000)
             responses.append(HandlerResponse(activity, pid=game[3]))
         return responses
 
