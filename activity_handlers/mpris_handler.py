@@ -5,7 +5,7 @@ import urllib.parse
 import requests
 import dbus
 
-from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
+from activity_handler import ActivityHandler, HandlerContext, HandlerResponse, build_activity_from_format
 from discord_ipc import ACTIVITY_TYPE, STATUS_DISPLAY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
 
 class Player():
@@ -16,7 +16,8 @@ class Player():
                  cover_art_url: str|None,
                  length: int,
                  position: int,
-                 status: str
+                 status: str,
+                 pid: int
                 ):
         self.name = name
         self.title = title
@@ -25,6 +26,7 @@ class Player():
         self.length = length
         self.position = position
         self.status = status
+        self.pid = pid
 
     def get_artist(self):
         if (len(self.artists) == 0):
@@ -55,6 +57,9 @@ class Player():
     
     def get_length(self):
         return self.length
+    
+    def get_pid(self):
+        return self.pid
 
     def get_response_hash(self):
         # Used to return the activity-specific hash - we divide start by 10000 to avoid weird jitter that happens sometimes when unpausing
@@ -107,16 +112,22 @@ class MPRISHandler(ActivityHandler):
                 position = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "Position") / 1000
                 status = mediaplayer_properties.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
 
+                # Get the PID
+                dbus_object = session_bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+                dbus_interface = dbus.Interface(dbus_object, dbus_interface="org.freedesktop.DBus")
+                pid = dbus_interface.GetConnectionUnixProcessID(bus_name)
+
                 # We store a list of players so we can select the best one!
                 players.append(
                     Player(
-                        name,
+                        str(name),
                         title,
                         [str(artist) for artist in artists],
                         cover_art_url,
                         int(length),
                         int(position),
-                        str(status)
+                        str(status),
+                        int(pid)
                     )
                 )
 
@@ -135,26 +146,29 @@ class MPRISHandler(ActivityHandler):
             if (len(players) > 1):
                 return HandlerResponse()
 
-        cover_url = selected_player.upload_cover(self.context.config["server_url"], self.context.config["server_auth_key"])
-        activity = DiscordActivity(
-            str(selected_player.get_name()),
-            type = ACTIVITY_TYPE.LISTENING,
-            details=selected_player.get_title(),
-            details_url=f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(selected_player.get_artist()) + ' "' + str(selected_player.get_title()) + '"')}",
-            state=f"{selected_player.get_artist()} | {str(selected_player.get_status())}",
-            timestamps=DiscordActivityTimestamps(
-                start=selected_player.get_start(),
-                end=selected_player.get_end()
-            ),
-            status_display_type=STATUS_DISPLAY_TYPE.DETAILS
+        cover_url = selected_player.upload_cover(self.context.config["general"]["server_url"], self.context.config["general"]["server_auth_key"])
+        activity = build_activity_from_format(
+            ACTIVITY_TYPE.LISTENING,
+            self.context.config["mpris_handler"]["activity_format"],
+            {
+                "name": selected_player.get_name(),
+                "title": selected_player.get_title(),
+                "artist": selected_player.get_artist(),
+                "status": selected_player.get_status(),
+                "url": f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(selected_player.get_artist()) + ' "' + str(selected_player.get_title()) + '"')}",
+                "cover_url": cover_url if cover_url else ""
+            }
         )
-        if (cover_url != None):
-            activity.assets = DiscordActivityAssets(
-                DiscordActivityImage(cover_url)
-            )
+
+        activity.timestamps=DiscordActivityTimestamps(
+            start=selected_player.get_start(),
+            end=selected_player.get_end()
+        )        
+        
         return HandlerResponse(
             activity,
-            hash=selected_player.get_response_hash()
+            hash=selected_player.get_response_hash(),
+            pid=selected_player.get_pid()
         )
 
 

@@ -106,10 +106,10 @@ class DiscordActivityParty(DiscordJSONObject):
         return data
     
 class DiscordActivityImage():
-    def __init__(self, image: str = None, text: str = None, url: str = None):
-        self.image: str = image
-        self.text: str = text
-        self.url: str = url
+    def __init__(self, image: str|None = None, text: str|None = None, url: str|None = None):
+        self.image: str|None = image
+        self.text: str|None = text
+        self.url: str|None = url
     
 class DiscordActivityAssets(DiscordJSONObject):
     def __init__(self, large_image: DiscordActivityImage = None, small_image: DiscordActivityImage = None, invite_cover_image: str = None):

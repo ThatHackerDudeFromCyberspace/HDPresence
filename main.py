@@ -1,6 +1,7 @@
 import json
 from activity_handler import HandlerContext, ActivityHandler, HandlerResponse
 from discord_ipc import ACTIVITY_TYPE, DiscordActivityAssets, DiscordIPC, DiscordJSONEncoder
+import tomllib
 import importlib
 import uuid
 import time
@@ -9,11 +10,11 @@ import os
 
 os.makedirs("cache", exist_ok=True)
 PID = os.getpid()
-config = {}
-with open("./config.json", 'r') as file:
-    config = json.loads(file.read())
+config = None
+with open("./config.toml", 'rb') as file:
+    config = tomllib.load(file)
 
-discord = DiscordIPC(config["client_id"])
+discord = DiscordIPC(config["general"]["client_id"])
 
 print("Connecting to dbus...")
 session_bus = dbus.SessionBus()
@@ -27,7 +28,7 @@ for file in os.listdir("activity_handlers"):
         continue
 
     handler_name = file[:-3]
-    if (not handler_name in config["enabled_handlers"]):
+    if (not handler_name in config["general"]["enabled_handlers"]):
         continue
 
     print(f"- {handler_name}")
@@ -42,40 +43,45 @@ print("\nDone.\n")
 last_activity_hash = None
 last_activity_ping = 0
 while True:
-    should_update_activity = time.time() - last_activity_ping > config["activity_refresh_time"]
-    if (last_activity_hash != None and time.time() - last_activity_ping < config["activity_cooldown_time"]):
-        time.sleep(config["activity_cooldown_time"] - (time.time() - last_activity_ping)) # Cooldown or Discord won't respect our updates at all!
+    should_update_activity = time.time() - last_activity_ping > config["general"]["activity_refresh_time"]
+    if (last_activity_hash != None and time.time() - last_activity_ping < config["general"]["activity_cooldown_time"]):
+        time.sleep(config["general"]["activity_cooldown_time"] - (time.time() - last_activity_ping)) # Cooldown or Discord won't respect our updates at all!
         continue
 
     activity = None
     sent_activity = False
     cumulative_hash = ""
-    for handler_name in config["enabled_handlers"]:
+    handled_pids = []
+    for handler_name in config["general"]["enabled_handlers"]:
         handler = handlers[handler_name]
         handler_response = handler.get_response()
-        handler_hash = handler_response.get_hash()
-        handler_activity = handler_response.get_activity()
-        if (handler_activity == None or handler_hash == None):
+        response_hash = handler_response.get_hash()
+        response_pid = handler_response.get_pid()
+        response_activity = handler_response.get_activity()
+        if (response_activity == None or response_hash == None):
+            continue
+        if (response_pid in handled_pids): # Don't have one handler accidentally do the same application
             continue
 
-        cumulative_hash += handler_hash
+        cumulative_hash += response_hash
+        handled_pids.append(response_pid)
         if (activity == None):
-            activity = handler_activity
+            activity = response_activity
             continue
 
-        activity.name += f" whilst {handler_response.get_prefix()} " + handler_activity.name
-        activity.buttons.extend(handler_activity.buttons)
+        activity.name += f" whilst {handler_response.get_prefix()} " + response_activity.name
+        activity.buttons.extend(response_activity.buttons)
         activity.buttons = activity.buttons[:2] # Max of two items!!!
-        if (handler_activity.assets != None):
+        if (response_activity.assets != None):
             if (activity.assets == None):
                 activity.assets = DiscordActivityAssets()
 
-            image_to_use = handler_activity.assets.large_image
-            if (handler_activity.assets.small_image != None):
-                image_to_use = handler_activity.assets.small_image
+            image_to_use = response_activity.assets.large_image
+            if (response_activity.assets.small_image != None):
+                image_to_use = response_activity.assets.small_image
 
             if (image_to_use.text == None):
-                image_to_use.text = handler_activity.name
+                image_to_use.text = response_activity.name
 
             if (activity.assets.large_image != None):
                 activity.assets.small_image = image_to_use

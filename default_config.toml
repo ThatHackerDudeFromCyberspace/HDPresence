@@ -1,0 +1,101 @@
+[general]
+client_id = "1475105977937166408" # The Discord application client id
+activity_refresh_time = 60
+activity_cooldown_time = 10
+server_url = "https://presence.hackerdude.tech"
+server_auth_key = "" # Leave blank if using the public instance
+
+# The order of these handlers gives the priority for which activity should be displayed
+# Earlier handlers in the list have a higher priority
+enabled_handlers = [
+    "mpris_handler",
+    "steam_handler",
+    "process_handler"
+]
+
+[mpris_handler]
+upload_cover = true # Whether or not the cover art of the track should be uploaded to the server or not
+
+[mpris_handler.activity_format]
+# Activity template keys:
+# {name} - The name of the current media player
+# {title} - The name of the current track
+# {artist} - The artist of the current track
+# {status} - The status of the track, one of Playing,Paused,Stopped
+# {url} - A url to the track or to search for the track
+# {cover_url} - A url to the uploaded cover art of the track (will be empty if upload_cover is false)
+name = "{name}"
+details = "{title}"
+details_url = "{url}"
+state = "{artist} | {status}"
+state_url = ""
+status_display_type = 2
+large_image = "{cover_url}"
+large_image_text = ""
+large_image_url = ""
+small_image = ""
+small_image_text = ""
+small_image_url = ""
+buttons = []
+
+[steam_handler]
+api_key = "" # API key for the webapi, used to get game name and icon image (https://steamcommunity.com/dev/apikey)
+
+[steam_handler.activity_format]
+# Activity template keys:
+# {name} - The name of the game
+# {header_url} - The url to the game's header image
+# {icon_url} - The url to the game's icon image
+# {store_url} - The url to the game on the Steam store
+name = "{name}"
+details = ""
+details_url = ""
+state = ""
+state_url = ""
+status_display_type = ""
+large_image = "{header_url}"
+large_image_text = "{name}"
+large_image_url = "{store_url}"
+small_image = "{icon_url}"
+small_image_text = ""
+small_image_url = "{store_url}"
+buttons = [ { label = "View On Steam", url = "{store_url}" } ]
+
+[process_handler]
+upload_icons = true
+
+# The whitelist and blacklist should consist of process names or commands to white/blacklist
+# These lists are both case-insensitive
+whitelist = []
+blacklist = []
+
+# Mapping for process-specific prefixes based on their name/command
+prefixes = [
+    ["code", "programming with"],
+    ["chrome", "browsing the web"]
+]
+
+# Mapping to override the display name of certain processes
+name_overrides = [
+    ["code", "VSCode"],
+    ["chrome", ""] # "browsing the web"
+]
+
+[process_handler.activity_format]
+# Activity template keys:
+# {name} - The name of the process
+# {window_title} - The title of the window (will be set to {name} if not applicable for this process}
+# {icon_url} - The uploaded icon of the application (empty if upload_icons is false)
+name = "{name}"
+details = ""
+details_url = ""
+state = ""
+state_url = ""
+status_display_type = ""
+large_image = "{icon_url}"
+large_image_text = ""
+large_image_url = ""
+small_image = ""
+small_image_text = ""
+small_image_url = ""
+buttons = []

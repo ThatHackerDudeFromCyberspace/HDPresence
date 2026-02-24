@@ -4,7 +4,7 @@ import psutil
 import requests
 import json
 
-from activity_handler import ActivityHandler, HandlerContext, HandlerResponse
+from activity_handler import ActivityHandler, HandlerContext, HandlerResponse, build_activity_from_format
 from discord_ipc import ACTIVITY_TYPE, DiscordActivity, DiscordActivityAssets, DiscordActivityButton, DiscordActivityImage, DiscordActivityTimestamps
 
 class SteamHandler(ActivityHandler):
@@ -12,7 +12,8 @@ class SteamHandler(ActivityHandler):
     
     def __init__(self, context: HandlerContext):
         os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
-        self.api_key: str = context.config["steam_api_key"]
+        self.api_key: str = context.config["steam_handler"]["api_key"]
+        self.context = context
         self.cache = {}
         if (os.path.exists(self.cache_path)):
             with open(self.cache_path, "r") as file:
@@ -52,7 +53,7 @@ class SteamHandler(ActivityHandler):
 
     def get_response(self) -> HandlerResponse:
         running_games = []
-        for proc in psutil.process_iter(['name', 'cmdline', 'create_time']):
+        for proc in psutil.process_iter(['name', 'cmdline', 'create_time', 'pid']):
             if (proc.info["name"] == "reaper"):
                 if (proc.info["cmdline"] == None):
                     continue
@@ -61,52 +62,41 @@ class SteamHandler(ActivityHandler):
                         running_games.append((
                             arg.split('=')[-1],
                             proc.info["create_time"],
-                            proc.info["cmdline"]
+                            proc.info["cmdline"],
+                            proc.info["pid"]
                         ))
         running_games.sort(key=lambda game: game[1]) # Sort by creation time
         running_games = running_games[-1::-1] # Flip
         
-        activities = []
         app_infos = self.get_app_infos([game[0] for game in running_games])
         for game in running_games:
             appid = game[0]
             create_time = game[1]
             app_info = app_infos[appid]
 
-            icon_url = None
-            large_image_url = None
-            store_url = None
+            icon_url = ""
+            header_image_url = ""
+            store_url = ""
             if ("icon" in app_info.keys() and "name" in app_info.keys()):
                 icon_url = f"https://shared.fastly.steamstatic.com/community_assets/images/apps/{appid}/{app_info['icon']}.jpg"
-                large_image_url = f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg" #f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
+                header_image_url = f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg" #f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
                 store_url = f"https://store.steampowered.com/app/{appid}"
             else:
                 app_info["name"] = os.path.basename(game[2][-1]).strip()
                 if (app_info["name"][-4:] == ".exe"):
                     app_info["name"] = app_info["name"][:-4]
 
-            activity = DiscordActivity(
-                app_info["name"],
-                type = ACTIVITY_TYPE.PLAYING,
-                timestamps=DiscordActivityTimestamps(
-                    start=create_time*1000
-                )
+            activity = build_activity_from_format(
+                ACTIVITY_TYPE.PLAYING,
+                self.context.config["steam_handler"]["activity_format"],
+                {
+                    "name": app_info["name"],
+                    "header_url": header_image_url,
+                    "icon_url": icon_url,
+                    "store_url": store_url
+                }
             )
-            if (icon_url != None):
-                activity.assets=DiscordActivityAssets(
-                    large_image = DiscordActivityImage(
-                        image=large_image_url,
-                        text=app_info["name"],
-                        url=store_url
-                    ),
-                    small_image = DiscordActivityImage(
-                        image=icon_url,
-                        url=store_url
-                    )
-                )
-            if (store_url != None):
-                activity.buttons.append(DiscordActivityButton("View On Steam", store_url))
-            return HandlerResponse(activity)
+            return HandlerResponse(activity, pid=game[3])
         return HandlerResponse()
 
 ACTIVITY_HANDLER = SteamHandler
