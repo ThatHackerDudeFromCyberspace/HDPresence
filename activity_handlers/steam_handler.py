@@ -51,7 +51,7 @@ class SteamHandler(ActivityHandler):
 
         return obtained
 
-    def get_response(self) -> HandlerResponse:
+    def get_responses(self) -> list[HandlerResponse]:
         running_games = []
         for proc in psutil.process_iter(['name', 'cmdline', 'create_time', 'pid']):
             if (proc.info["name"] == "reaper"):
@@ -69,6 +69,7 @@ class SteamHandler(ActivityHandler):
         running_games = running_games[-1::-1] # Flip
         
         app_infos = self.get_app_infos([game[0] for game in running_games])
+        responses = []
         for game in running_games:
             appid = game[0]
             create_time = game[1]
@@ -96,7 +97,7 @@ class SteamHandler(ActivityHandler):
                     "store_url": store_url
                 }
             )
-            return HandlerResponse(activity, pid=game[3])
-        return HandlerResponse()
+            responses.append(HandlerResponse(activity, pid=game[3]))
+        return responses
 
 ACTIVITY_HANDLER = SteamHandler

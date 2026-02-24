@@ -2,6 +2,7 @@
 client_id = "1475105977937166408" # The Discord application client id
 activity_refresh_time = 60
 activity_cooldown_time = 10
+max_activities = 3 # The maximum number of activities to chain together
 server_url = "https://presence.hackerdude.tech"
 server_auth_key = "" # Leave blank if using the public instance
 

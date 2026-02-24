@@ -42,7 +42,7 @@ class HandlerContext():
         self.session_bus = session_bus
 
 class HandlerResponse():
-    def __init__(self, activity: DiscordActivity|None = None, hash: str = None, prefix: str = None, pid: int = None):
+    def __init__(self, activity: DiscordActivity, hash: str = None, prefix: str = None, pid: int = None):
         self.activity = activity
         if (hash == None):
             self.hash: str = json.dumps(self.activity, cls=DiscordJSONEncoder)
@@ -64,12 +64,12 @@ class HandlerResponse():
     def get_hash(self) -> str:
         return self.hash
     
-    def get_activity(self) -> DiscordActivity|None:
+    def get_activity(self) -> DiscordActivity:
         return self.activity
 
 class ActivityHandler():
     def __init__(self, context: HandlerContext):
         pass
 
-    def get_response(self) -> HandlerResponse:
+    def get_responses(self) -> list[HandlerResponse]:
         pass

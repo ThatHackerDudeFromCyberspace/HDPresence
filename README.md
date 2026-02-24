@@ -42,3 +42,7 @@ buttons = []
 ## Process Handler Caveats
 - Process handler by default works only on KDE as it uses KWin's scripting API to get window PIDs
 - To use the process handler on non-KDE DEs set an explicit process `whitelist` in the configuration file
+
+## Troubleshooting
+### The progress reported by MPRIS whilst watching YouTube is wrong
+This is a bug in Chrome/YouTube itself, the following extension fixes it: [https://github.com/LurkAndLoiter/youtube-mpris-fix](https://github.com/LurkAndLoiter/youtube-mpris-fix)

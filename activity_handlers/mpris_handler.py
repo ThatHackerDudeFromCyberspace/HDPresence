@@ -90,7 +90,7 @@ class MPRISHandler(ActivityHandler):
     def __init__(self, context: HandlerContext):
         self.context = context
 
-    def get_response(self) -> HandlerResponse:
+    def get_responses(self) -> list[HandlerResponse]:
         session_bus = self.context.session_bus
         players: list[Player] = []
         for bus_name in session_bus.list_names():
@@ -134,42 +134,44 @@ class MPRISHandler(ActivityHandler):
         if (len(players) == 0):
             return HandlerResponse()
 
-        selected_player = players[0]
-        for player in players:
+        selected_player_index = 0
+        for i in range(len(players)):
+            player = players[i]
             if (player.get_status() == "Playing"):
-                selected_player = player
+                selected_player_index = i
                 break
-            if (player.get_start() > selected_player.get_start()):
-                selected_player = player
+            if (player.get_start() > players[selected_player_index].get_start()):
+                selected_player_index = i
 
-        if (selected_player.get_status() != "Playing"):
-            if (len(players) > 1):
-                return HandlerResponse()
+        responses = []
+        for player in players:
+            cover_url = player.upload_cover(self.context.config["general"]["server_url"], self.context.config["general"]["server_auth_key"])
+            activity = build_activity_from_format(
+                ACTIVITY_TYPE.LISTENING,
+                self.context.config["mpris_handler"]["activity_format"],
+                {
+                    "name": player.get_name(),
+                    "title": player.get_title(),
+                    "artist": player.get_artist(),
+                    "status": player.get_status(),
+                    "url": f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(player.get_artist()) + ' "' + str(player.get_title()) + '"')}",
+                    "cover_url": cover_url if cover_url else ""
+                }
+            )
 
-        cover_url = selected_player.upload_cover(self.context.config["general"]["server_url"], self.context.config["general"]["server_auth_key"])
-        activity = build_activity_from_format(
-            ACTIVITY_TYPE.LISTENING,
-            self.context.config["mpris_handler"]["activity_format"],
-            {
-                "name": selected_player.get_name(),
-                "title": selected_player.get_title(),
-                "artist": selected_player.get_artist(),
-                "status": selected_player.get_status(),
-                "url": f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(str(selected_player.get_artist()) + ' "' + str(selected_player.get_title()) + '"')}",
-                "cover_url": cover_url if cover_url else ""
-            }
-        )
-
-        activity.timestamps=DiscordActivityTimestamps(
-            start=selected_player.get_start(),
-            end=selected_player.get_end()
-        )        
-        
-        return HandlerResponse(
-            activity,
-            hash=selected_player.get_response_hash(),
-            pid=selected_player.get_pid()
-        )
+            activity.timestamps=DiscordActivityTimestamps(
+                start=player.get_start(),
+                end=player.get_end()
+            )
+            
+            responses.append(HandlerResponse(
+                activity,
+                hash=player.get_response_hash(),
+                pid=player.get_pid()
+            ))
+        responses.insert(0, responses[selected_player_index])
+        responses.pop(selected_player_index)
+        return responses
 
 
 
