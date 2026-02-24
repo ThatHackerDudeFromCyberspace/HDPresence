@@ -127,7 +127,7 @@ class ProcessHandler(ActivityHandler):
             )
 
             activity.timestamps = DiscordActivityTimestamps(
-                start=process["create_time"]
+                start=process["create_time"]*1000
             )
 
             responses.append(HandlerResponse(
