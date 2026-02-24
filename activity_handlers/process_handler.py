@@ -98,9 +98,13 @@ class ProcessHandler(ActivityHandler):
         for icon_override in self.context.config["process_handler"]["icon_overrides"]:
             icon_overrides[icon_override[0]] = icon_override[1]
 
+        sorted_processes = [process_name for process_name in processes]
+        sorted_processes.sort(key=lambda process_name: processes[process_name][0]["create_time"])
+        sorted_processes = sorted_processes[-1::-1]
+
         
         responses = []
-        for process_name in processes:
+        for process_name in sorted_processes:
             icon_url = ""
             process = processes[process_name][0]
 

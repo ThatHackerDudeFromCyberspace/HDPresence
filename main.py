@@ -139,7 +139,10 @@ while True:
         activity.name = ""
         activity.name = " and ".join(matching_type_activity_names)
         for activity_prefix in grouped_activity_prefix_names:
-            activity.name += f" whilst {activity_prefix} {' and '.join(grouped_activity_prefix_names[activity_prefix])}"
+            whilst_and = "and"
+            if (activity_prefix == list(grouped_activity_prefix_names.keys())[0]):
+                whilst_and = "whilst"
+            activity.name += f" {whilst_and} {activity_prefix} {' and '.join(grouped_activity_prefix_names[activity_prefix])}"
 
     if (activity != None and (should_update_activity or cumulative_hash != last_activity_hash)):
         print("Sending new activity!")
