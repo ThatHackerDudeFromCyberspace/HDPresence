@@ -1,4 +1,4 @@
-- [ ] Implement generic process handler
+- [x] Implement generic process handler
 - [ ] Implement KDE shennanigans
 - [ ] Implement URL shortener
-- [ ] Allow the same handler to return multiple responses
+- [x] Allow the same handler to return multiple responses
