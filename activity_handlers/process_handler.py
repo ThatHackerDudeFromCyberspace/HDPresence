@@ -74,7 +74,6 @@ class ProcessHandler(ActivityHandler):
                                         psutil.STATUS_ZOMBIE,
                                         psutil.STATUS_DEAD,
                                         psutil.STATUS_PARKED]):
-                print(proc.info["status"])
                 continue
 
             name = proc.info["name"].lower()
