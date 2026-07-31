@@ -302,4 +302,4 @@ class DiscordIPC():
         print("Waiting for Discord to respond")
         self.wait_valid_response()
 
-runtime_dir = os.environ["XDG_RUNTIME_DIR"]
+runtime_dir = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
