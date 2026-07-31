@@ -274,6 +274,9 @@ class DiscordIPC():
 
         discord_socket_path = None
         for runtime_dir in runtime_dirs:
+            print(f"Searching for socket in {runtime_dir}")
+            if (not os.path.exists(runtime_dir)):
+                continue
             for file in os.listdir(runtime_dir):
                 if ("discord-ipc" in file):
                     discord_socket_path = os.path.join(runtime_dir, file)
