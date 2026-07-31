@@ -266,6 +266,7 @@ class DiscordIPC():
         self.client_id = client_id
         runtime_dirs = [
             os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"),
+            f"{os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")}/app/com.discordapp.Discord/", # Flatpak discord
             os.environ.get("TMPDIR", ""),
             os.environ.get("TMP", ""),
             os.environ.get("TEMP", ""),
@@ -281,6 +282,8 @@ class DiscordIPC():
                 if ("discord-ipc" in file):
                     discord_socket_path = os.path.join(runtime_dir, file)
                     break
+            if (discord_socket_path != None):
+                break
         if (discord_socket_path == None):
             raise Exception("Could not find Discord socket path!")
 
