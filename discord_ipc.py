@@ -264,12 +264,20 @@ class DiscordIPC():
     
     def __init__(self, client_id):
         self.client_id = client_id
+        runtime_dirs = [
+            os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"),
+            os.environ.get("TMPDIR", ""),
+            os.environ.get("TMP", ""),
+            os.environ.get("TEMP", ""),
+            "/tmp"
+        ]
 
         discord_socket_path = None
-        for file in os.listdir(runtime_dir):
-            if ("discord-ipc" in file):
-                discord_socket_path = os.path.join(runtime_dir, file)
-                break
+        for runtime_dir in runtime_dirs:
+            for file in os.listdir(runtime_dir):
+                if ("discord-ipc" in file):
+                    discord_socket_path = os.path.join(runtime_dir, file)
+                    break
         if (discord_socket_path == None):
             raise Exception("Could not find Discord socket path!")
 
@@ -301,5 +309,3 @@ class DiscordIPC():
 
         print("Waiting for Discord to respond")
         self.wait_valid_response()
-
-runtime_dir = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
